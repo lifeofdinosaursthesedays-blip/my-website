@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>5度圏ルーレット</title>
+<meta name="description" content="5度圏をルーレットで回して止め、となりのマスを当てて覚えるトレーニング">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="icon" href="./favicon-64.png" sizes="64x64">
+<meta name="theme-color" content="#f4efe3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#151823" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="5度圏">
+<style>
+  :root {
+    --ink: #151823;
+    --ink-soft: #1e2230;
+    --panel: #232838;
+    --panel-2: #2b3143;
+    --line: #3a4257;
+    --paper: #f2ebdb;
+    --paper-dim: #cfc7b4;
+    --muted: #9aa2b8;
+    --brass: #c6963f;
+    --brass-soft: #e0b566;
+    --sage: #5b9b8e;
+    --sage-soft: #86c4b6;
+    --good: #6bbf7a;
+    --bad: #d9736b;
+    --blank: #2f3648;
+    --radius: 14px;
+    --serif: "Palatino Linotype", "Book Antiqua", Palatino, "Iowan Old Style", Georgia, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+  }
+
+  :root[data-theme="light"] {
+    --ink: #f4efe3;
+    --ink-soft: #ece4d2;
+    --panel: #ffffff;
+    --panel-2: #f6f1e5;
+    --line: #ddd3bd;
+    --paper: #22252f;
+    --paper-dim: #55596a;
+    --muted: #7a7566;
+    --brass: #a9772a;
+    --brass-soft: #8c6220;
+    --sage: #3d7d70;
+    --sage-soft: #2f6b5f;
+    --good: #3f8d50;
+    --bad: #b8483f;
+    --blank: #e0d7c1;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --ink: #f4efe3;
+      --ink-soft: #ece4d2;
+      --panel: #ffffff;
+      --panel-2: #f6f1e5;
+      --line: #ddd3bd;
+      --paper: #22252f;
+      --paper-dim: #55596a;
+      --muted: #7a7566;
+      --brass: #a9772a;
+      --brass-soft: #8c6220;
+      --sage: #3d7d70;
+      --sage-soft: #2f6b5f;
+      --good: #3f8d50;
+      --bad: #b8483f;
+      --blank: #e0d7c1;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html { background: var(--ink); }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--brass) 8%, transparent), transparent 60%),
+      var(--ink);
+    color: var(--paper);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: contain;
+  }
+
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding:
+      max(clamp(18px, 4vw, 44px), env(safe-area-inset-top))
+      max(clamp(14px, 4vw, 32px), env(safe-area-inset-right))
+      max(28px, env(safe-area-inset-bottom))
+      max(clamp(14px, 4vw, 32px), env(safe-area-inset-left));
+  }
+
+  header.top {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+    border-bottom: 1px solid var(--line); padding-bottom: 16px; margin-bottom: 18px;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .clef { font-family: var(--serif); font-size: clamp(34px, 9vw, 46px); line-height: 1; color: var(--brass); }
+  h1 { font-family: var(--serif); font-weight: 600; font-size: clamp(21px, 5.6vw, 34px); margin: 0; text-wrap: balance; }
+  .sub { margin: 2px 0 0; color: var(--muted); font-size: clamp(11.5px, 3vw, 13.5px); letter-spacing: .02em; }
+  .theme-btn {
+    background: var(--panel); border: 1px solid var(--line); color: var(--paper);
+    border-radius: 999px; padding: 0 16px; min-height: 44px; font-family: var(--sans); font-size: 13px;
+    cursor: pointer; transition: border-color .2s; touch-action: manipulation;
+  }
+  .theme-btn:hover { border-color: var(--brass); }
+
+  .layout {
+    display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: clamp(16px, 3vw, 34px); align-items: start;
+  }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+
+  .wheel-card {
+    background: linear-gradient(180deg, var(--panel), var(--ink-soft));
+    border: 1px solid var(--line); border-radius: var(--radius);
+    padding: clamp(10px, 2.5vw, 22px);
+  }
+  .wheel-stage { position: relative; container-type: inline-size; }
+  #wheel { width: 100%; height: auto; display: block; touch-action: manipulation; }
+  .overlay { position: absolute; inset: 0; pointer-events: none; }
+
+  .seg-path { transition: fill .5s ease, stroke .3s ease; }
+  .seg-label { font-family: var(--serif); text-anchor: middle; dominant-baseline: central; pointer-events: none; user-select: none; fill: var(--paper); }
+  .seg-label.hide { opacity: 0; }
+  .seg-label.reveal { animation: pop .5s ease-out; }
+  @keyframes pop { 0% { opacity: 0; transform: scale(.8); } 100% { opacity: 1; transform: scale(1); } }
+
+  .seg-path.anchor { stroke: var(--paper) !important; stroke-width: 2.2 !important; }
+  .seg-path.target {
+    stroke: var(--brass) !important; stroke-width: 2.6 !important;
+    animation: pulse 1.7s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: .3; } }
+
+  .hub-text { font-family: var(--serif); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+
+  /* 盤面上の解答欄 */
+  .fi {
+    position: absolute; transform: translate(-50%, -50%); pointer-events: auto;
+    text-align: center; font-family: var(--serif);
+    background: var(--ink-soft); color: var(--paper);
+    border: 1.5px solid var(--brass); border-radius: 8px; padding: 0; outline: none;
+    width: 62px; height: 32px; font-size: 18px;
+    width: 15.8cqw; height: 8.1cqw; font-size: 4.7cqw;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--brass) 22%, transparent);
+  }
+  .fi.minor { width: 46px; height: 25px; font-size: 14px; width: 11.6cqw; height: 6.3cqw; font-size: 3.7cqw; }
+  .fi:focus { box-shadow: 0 0 0 5px color-mix(in srgb, var(--brass) 38%, transparent); }
+  .fi.ng { border-color: var(--bad); animation: shake .32s; }
+  @keyframes shake {
+    0%, 100% { transform: translate(-50%, -50%); }
+    25% { transform: translate(calc(-50% - 5px), -50%); }
+    75% { transform: translate(calc(-50% + 5px), -50%); }
+  }
+
+  .stack { display: flex; flex-direction: column; gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: clamp(15px, 4vw, 20px); }
+  .card h2 { font-family: var(--sans); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin: 0 0 13px; font-weight: 700; }
+
+  .scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 13px; }
+  .sc { display: flex; flex-direction: column; gap: 1px; }
+  .sc i { font-style: normal; font-size: 10.5px; letter-spacing: .08em; color: var(--muted); }
+  .sc b { font-family: var(--serif); font-size: 21px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .sc.hot b { color: var(--brass); }
+
+  .qbox { min-height: 88px; }
+  .qkicker { font-size: 11px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; }
+  .qtext { font-family: var(--serif); font-size: clamp(18px, 4.8vw, 23px); margin: 6px 0 0; text-wrap: balance; line-height: 1.45; }
+  .qtext .hl { color: var(--brass-soft); }
+  .fb { font-size: 13.5px; margin: 9px 0 0; line-height: 1.6; }
+  .fb.good { color: var(--good); }
+  .fb.bad { color: var(--bad); }
+  .fb b { font-family: var(--serif); font-size: 15px; color: var(--paper); }
+
+  /* タップ解答パッド */
+  .pad { margin-top: 14px; display: flex; flex-direction: column; gap: 7px; }
+  .pad.off { opacity: .35; pointer-events: none; }
+  .pad-acc { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .pad-notes { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+  .padbtn {
+    min-height: 48px; padding: 0;
+    font-family: var(--serif); font-size: 19px;
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--paper);
+    border-radius: 10px; cursor: pointer; touch-action: manipulation; user-select: none;
+    transition: background .12s, border-color .12s, transform .08s;
+  }
+  .padbtn:active { transform: translateY(1px); }
+  .padbtn:hover { border-color: var(--brass); }
+  .accbtn.on { background: var(--brass); border-color: var(--brass); color: #1a150a; font-weight: 700; }
+  .pad-note-hint { font-size: 11.5px; color: var(--muted); margin: 1px 0 0; }
+
+  .acts { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 14px; }
+  .btn {
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--paper);
+    font-family: var(--sans); font-size: 13.5px; padding: 0 20px; min-height: 46px;
+    border-radius: 999px; cursor: pointer; transition: all .15s; touch-action: manipulation;
+    flex: 1 1 auto;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--brass); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn.primary { background: var(--brass); border-color: var(--brass); color: #1a150a; font-weight: 700; }
+  .btn.primary:hover:not(:disabled) { filter: brightness(1.08); }
+
+  .cfg-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: 14px; }
+  .cfg-row > i { font-style: normal; font-size: 11px; letter-spacing: .1em; color: var(--muted); width: 46px; flex: none; }
+  .chip {
+    background: transparent; border: 1px solid var(--line); color: var(--muted);
+    font-family: var(--sans); font-size: 12.5px; padding: 0 14px; min-height: 44px;
+    border-radius: 999px; cursor: pointer; transition: all .15s; touch-action: manipulation;
+    flex: 1 1 0; min-width: 0; white-space: nowrap;
+  }
+  .chip.active { background: var(--panel-2); color: var(--paper); border-color: var(--brass); }
+  /* 狭い画面ではラベルを上の行に逃がしてチップの幅を確保する */
+  @media (max-width: 480px) {
+    .cfg-row > i { width: 100%; margin-bottom: 1px; }
+  }
+
+  .mnemo { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; }
+  .mnemo + .mnemo { margin-top: 9px; }
+  .mnemo b { font-family: var(--serif); font-size: 14.5px; letter-spacing: .05em; }
+  .mnemo small { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
+
+  footer.foot { margin-top: 28px; text-align: center; color: var(--muted); font-size: 11.5px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="clef">&#119070;</div>
+      <div>
+        <h1>5度圏ルーレット</h1>
+        <p class="sub">回して止めて、となりを当てる</p>
+      </div>
+    </div>
+    <button class="theme-btn" id="themeBtn">&#9789; テーマ</button>
+  </header>
+
+  <div class="layout">
+    <div class="wheel-card">
+      <div class="wheel-stage">
+        <svg id="wheel" viewBox="0 0 400 400" role="img" aria-label="5度圏のルーレット"></svg>
+        <div class="overlay" id="overlay"></div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <section class="card">
+        <h2>ルーレット</h2>
+        <div class="scores">
+          <div class="sc"><i>せいかい</i><b id="scCorrect">0</b></div>
+          <div class="sc"><i>しゅつだい</i><b id="scTotal">0</b></div>
+          <div class="sc" id="scStreakWrap"><i>れんぞく</i><b id="scStreak">0</b></div>
+        </div>
+        <div class="qbox">
+          <div class="qkicker" id="qKicker">じゅんび</div>
+          <p class="qtext" id="qText">「回す」を押すとルーレットが回ります。</p>
+          <p class="fb" id="fb"></p>
+        </div>
+
+        <div class="pad off" id="pad">
+          <div class="pad-acc" id="padAcc">
+            <button class="padbtn accbtn on" data-a="" aria-pressed="true">&#9838;</button>
+            <button class="padbtn accbtn" data-a="#" aria-pressed="false">&#9839;</button>
+            <button class="padbtn accbtn" data-a="b" aria-pressed="false">&#9837;</button>
+          </div>
+          <div class="pad-notes" id="padNotes"></div>
+          <p class="pad-note-hint" id="padHint">&#9839;/&#9837; を選んでから音名をタップ</p>
+        </div>
+
+        <div class="acts">
+          <button class="btn primary" id="spinBtn">回す</button>
+          <button class="btn" id="revealBtn" disabled>答えを見る</button>
+        </div>
+        <div class="cfg-row" id="cfgLevel">
+          <i>レベル</i>
+          <button class="chip" data-v="easy">となりだけ</button>
+          <button class="chip active" data-v="normal">5マス</button>
+          <button class="chip" data-v="hard">短調からも</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>となりの関係</h2>
+        <div class="mnemo">
+          <b>右どなり ＝ 完全5度上</b>
+          <small>C → G → D → A …。&#9839;が1つ増える</small>
+        </div>
+        <div class="mnemo">
+          <b>左どなり ＝ 完全4度上</b>
+          <small>C → F → B&#9837; → E&#9837; …。&#9837;が1つ増える</small>
+        </div>
+        <div class="mnemo">
+          <b>内がわ ＝ 平行短調（長3度下）</b>
+          <small>C長調 → Aマイナー。調号は同じ</small>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <footer class="foot">短調のマスは音名だけでOK（Gm は G）。キーボードでも入力できます。</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // major/minor は表示用、majId/minId は判定用の ASCII 正規形
+  const KEYS = [
+    { major: "C",  majId: ["C"],        minor: "Am",  minId: ["Am"],         type: "none",  count: 0 },
+    { major: "G",  majId: ["G"],        minor: "Em",  minId: ["Em"],         type: "sharp", count: 1 },
+    { major: "D",  majId: ["D"],        minor: "Bm",  minId: ["Bm"],         type: "sharp", count: 2 },
+    { major: "A",  majId: ["A"],        minor: "F♯m", minId: ["F#m"],        type: "sharp", count: 3 },
+    { major: "E",  majId: ["E"],        minor: "C♯m", minId: ["C#m"],        type: "sharp", count: 4 },
+    { major: "B",  majId: ["B", "Cb"],  minor: "G♯m", minId: ["G#m", "Abm"], type: "sharp", count: 5 },
+    { major: "G♭", majId: ["Gb", "F#"], minor: "E♭m", minId: ["Ebm", "D#m"], type: "flat",  count: 6, dual: true },
+    { major: "D♭", majId: ["Db", "C#"], minor: "B♭m", minId: ["Bbm", "A#m"], type: "flat",  count: 5 },
+    { major: "A♭", majId: ["Ab"],       minor: "Fm",  minId: ["Fm"],         type: "flat",  count: 4 },
+    { major: "E♭", majId: ["Eb"],       minor: "Cm",  minId: ["Cm"],         type: "flat",  count: 3 },
+    { major: "B♭", majId: ["Bb"],       minor: "Gm",  minId: ["Gm"],         type: "flat",  count: 2 },
+    { major: "F",  majId: ["F"],        minor: "Dm",  minId: ["Dm"],         type: "flat",  count: 1 }
+  ];
+
+  const N = KEYS.length;
+  const STEP = (Math.PI * 2) / N;
+  const NOTE_LETTERS = ["C", "D", "E", "F", "G", "A", "B"];
+
+  function sigText(k) {
+    if (k.count === 0) return "調号なし";
+    if (k.dual) return "♭6つ／♯6つ";
+    return (k.type === "sharp" ? "♯" : "♭") + k.count + "つ";
+  }
+  function label(i, ring) {
+    const k = KEYS[i];
+    if (ring === "major") return k.dual ? "G♭/F♯" : k.major;
+    return k.minor;
+  }
+  function rand(n) { return Math.floor(Math.random() * n); }
+
+  // 入力の正規化（ASCII 正規形へ）
+  function canon(str) {
+    let s = String(str).trim().replace(/\s+/g, "");
+    if (!s) return null;
+    s = s.replace(/[Ａ-Ｚａ-ｚ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+    s = s.replace(/[＃♯]/g, "#").replace(/[♭]/g, "b");
+    const m = s.match(/^([A-Ga-g])([#b]?)(m|min|minor|マイナー|短|短調)?$/);
+    if (!m) return null;
+    return m[1].toUpperCase() + (m[2] || "") + (m[3] ? "m" : "");
+  }
+  function acceptedFor(i, ring) {
+    const set = new Set();
+    (ring === "major" ? KEYS[i].majId : KEYS[i].minId).forEach(id => {
+      set.add(id);
+      if (id.endsWith("m")) set.add(id.slice(0, -1)); // 短調は "Am" でも "A" でも可
+    });
+    return set;
+  }
+
+  // ---------- SVG ----------
+  const svg = document.getElementById("wheel");
+  const overlay = document.getElementById("overlay");
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const CX = 200, CY = 200, R_OUT = 184, R_MID = 124, R_IN = 76;
+  const R_MAJ = (R_MID + R_OUT) / 2, R_MIN = (R_IN + R_MID) / 2;
+
+  function pt(r, ang) { return [CX + r * Math.cos(ang), CY + r * Math.sin(ang)]; }
+  function ringPath(r0, r1, a0, a1) {
+    const [x1, y1] = pt(r1, a0), [x2, y2] = pt(r1, a1);
+    const [x3, y3] = pt(r0, a1), [x4, y4] = pt(r0, a0);
+    return `M${x1.toFixed(2)} ${y1.toFixed(2)} A${r1} ${r1} 0 0 1 ${x2.toFixed(2)} ${y2.toFixed(2)} `
+         + `L${x3.toFixed(2)} ${y3.toFixed(2)} A${r0} ${r0} 0 0 0 ${x4.toFixed(2)} ${y4.toFixed(2)} Z`;
+  }
+  function fillFor(k) {
+    if (k.type === "none") return "var(--panel-2)";
+    const t = k.count / 6;
+    return k.type === "sharp"
+      ? `hsl(40 ${34 + t * 26}% ${26 + t * 16}%)`
+      : `hsl(168 ${22 + t * 22}% ${24 + t * 15}%)`;
+  }
+
+  const wheelG = document.createElementNS(SVGNS, "g");
+  svg.appendChild(wheelG);
+
+  const segs = [];
+  KEYS.forEach((k, i) => {
+    const mid = -Math.PI / 2 + i * STEP;
+    const a0 = mid - STEP / 2, a1 = mid + STEP / 2;
+
+    const g = document.createElementNS(SVGNS, "g");
+    g.setAttribute("class", "seg");
+
+    const pMaj = document.createElementNS(SVGNS, "path");
+    pMaj.setAttribute("class", "seg-path");
+    pMaj.setAttribute("d", ringPath(R_MID, R_OUT, a0, a1));
+    pMaj.setAttribute("stroke-width", "1.5");
+    pMaj.style.stroke = "var(--ink)";
+    g.appendChild(pMaj);
+
+    const pMin = document.createElementNS(SVGNS, "path");
+    pMin.setAttribute("class", "seg-path");
+    pMin.setAttribute("d", ringPath(R_IN, R_MID, a0, a1));
+    pMin.setAttribute("stroke-width", "1.5");
+    pMin.style.stroke = "var(--ink)";
+    g.appendChild(pMin);
+
+    const [mx, my] = pt(R_MAJ, mid);
+    const tMaj = document.createElementNS(SVGNS, "text");
+    tMaj.setAttribute("class", "seg-label");
+    tMaj.setAttribute("x", mx.toFixed(1));
+    tMaj.setAttribute("y", my.toFixed(1));
+    tMaj.setAttribute("font-size", k.dual ? "15" : "22");
+    tMaj.textContent = label(i, "major");
+    g.appendChild(tMaj);
+
+    const [nx, ny] = pt(R_MIN, mid);
+    const tMin = document.createElementNS(SVGNS, "text");
+    tMin.setAttribute("class", "seg-label");
+    tMin.setAttribute("x", nx.toFixed(1));
+    tMin.setAttribute("y", ny.toFixed(1));
+    tMin.setAttribute("font-size", "13");
+    tMin.setAttribute("opacity", ".85");
+    tMin.textContent = label(i, "minor");
+    g.appendChild(tMin);
+
+    wheelG.appendChild(g);
+    segs.push({
+      g, pMaj, pMin, tMaj, tMin, mid,
+      baseMaj: fillFor(k),
+      baseMin: `color-mix(in srgb, ${fillFor(k)} 55%, var(--ink))`,
+      mx, my, nx, ny
+    });
+  });
+
+  // hub（回転しない）
+  const hub = document.createElementNS(SVGNS, "circle");
+  hub.setAttribute("cx", CX); hub.setAttribute("cy", CY); hub.setAttribute("r", R_IN - 2);
+  hub.style.fill = "var(--ink-soft)";
+  hub.style.stroke = "var(--line)";
+  svg.appendChild(hub);
+  const hubT1 = document.createElementNS(SVGNS, "text");
+  hubT1.setAttribute("class", "hub-text");
+  hubT1.setAttribute("x", CX); hubT1.setAttribute("y", CY - 11);
+  hubT1.setAttribute("font-size", "15");
+  hubT1.style.fill = "var(--paper-dim)";
+  hubT1.textContent = "5度圏";
+  svg.appendChild(hubT1);
+  const hubT2 = document.createElementNS(SVGNS, "text");
+  hubT2.setAttribute("class", "hub-text");
+  hubT2.setAttribute("x", CX); hubT2.setAttribute("y", CY + 11);
+  hubT2.setAttribute("font-size", "10.5");
+  hubT2.style.fill = "var(--muted)";
+  hubT2.textContent = "Circle of Fifths";
+  svg.appendChild(hubT2);
+
+  // ポインタ（真上・回転しない）
+  const ptr = document.createElementNS(SVGNS, "path");
+  ptr.setAttribute("d", "M200 30 L188 2 L212 2 Z");
+  ptr.style.fill = "var(--brass)";
+  ptr.style.stroke = "var(--ink)";
+  ptr.setAttribute("stroke-width", "1.5");
+  svg.appendChild(ptr);
+
+  // ---------- 回転 ----------
+  let rotDeg = 0;
+  function applyRotation(deg, withLabels) {
+    wheelG.setAttribute("transform", `rotate(${deg.toFixed(2)} ${CX} ${CY})`);
+    if (!withLabels) return;
+    segs.forEach(s => {
+      s.tMaj.setAttribute("transform", `rotate(${(-deg).toFixed(2)} ${s.mx.toFixed(1)} ${s.my.toFixed(1)})`);
+      s.tMin.setAttribute("transform", `rotate(${(-deg).toFixed(2)} ${s.nx.toFixed(1)} ${s.ny.toFixed(1)})`);
+    });
+  }
+  function cellPoint(i, ring) {
+    const ang = -Math.PI / 2 + i * STEP + rotDeg * Math.PI / 180;
+    return pt(ring === "major" ? R_MAJ : R_MIN, ang);
+  }
+
+  function paintFull() {
+    segs.forEach(s => { s.pMaj.style.fill = s.baseMaj; s.pMin.style.fill = s.baseMin; });
+  }
+  function paintBlank() {
+    segs.forEach(s => { s.pMaj.style.fill = "var(--blank)"; s.pMin.style.fill = "var(--blank)"; });
+  }
+  function showAllLabels(show) {
+    segs.forEach(s => {
+      s.tMaj.classList.toggle("hide", !show);
+      s.tMin.classList.toggle("hide", !show);
+    });
+  }
+  function clearMarks() {
+    segs.forEach(s => {
+      s.pMaj.classList.remove("anchor", "target");
+      s.pMin.classList.remove("anchor", "target");
+      s.tMaj.classList.remove("reveal");
+      s.tMin.classList.remove("reveal");
+    });
+  }
+  function pathOf(i, ring) { return ring === "major" ? segs[i].pMaj : segs[i].pMin; }
+  function textOf(i, ring) { return ring === "major" ? segs[i].tMaj : segs[i].tMin; }
+
+  // ---------- クイズ ----------
+  const qKicker = document.getElementById("qKicker");
+  const qText = document.getElementById("qText");
+  const fb = document.getElementById("fb");
+  const spinBtn = document.getElementById("spinBtn");
+  const revealBtn = document.getElementById("revealBtn");
+  const scCorrect = document.getElementById("scCorrect");
+  const scTotal = document.getElementById("scTotal");
+  const scStreak = document.getElementById("scStreak");
+  const scStreakWrap = document.getElementById("scStreakWrap");
+  const pad = document.getElementById("pad");
+  const padAcc = document.getElementById("padAcc");
+  const padNotes = document.getElementById("padNotes");
+
+  const coarse = window.matchMedia("(pointer: coarse)").matches;
+
+  let level = localStorage.getItem("cof.level") || "normal";
+  let anchor = null, target = null, input = null, acc = "";
+  let spinning = false, answered = false, landTimer = null, spinId = 0, missedThisRound = false;
+  const score = { correct: 0, total: 0, streak: 0 };
+
+  // 起点の隣接5マス
+  function neighborsOf(a) {
+    const L = (a.i + N - 1) % N, R = (a.i + 1) % N;
+    const other = a.ring === "major" ? "minor" : "major";
+    return [
+      { i: R,   ring: a.ring, rel: "right" },
+      { i: L,   ring: a.ring, rel: "left" },
+      { i: a.i, ring: other,  rel: "flip" },
+      { i: R,   ring: other,  rel: "rightFlip" },
+      { i: L,   ring: other,  rel: "leftFlip" }
+    ];
+  }
+
+  function relText(t) {
+    const toMinor = t.ring === "minor";
+    switch (t.rel) {
+      case "right":     return toMinor ? "右どなり（完全5度上）の短調" : "右どなり（完全5度上）の長調";
+      case "left":      return toMinor ? "左どなり（完全4度上）の短調" : "左どなり（完全4度上）の長調";
+      case "flip":      return toMinor ? "内がわ（平行短調）" : "外がわ（平行長調）";
+      case "rightFlip": return toMinor ? "右どなりの平行短調" : "右どなりの平行長調";
+      case "leftFlip":  return toMinor ? "左どなりの平行短調" : "左どなりの平行長調";
+    }
+    return "";
+  }
+
+  function pickQuestion() {
+    const ring = level === "hard" && Math.random() < 0.4 ? "minor" : "major";
+    const a = { i: rand(N), ring };
+    const pool = neighborsOf(a);
+    const t = level === "easy"
+      ? pool.filter(x => x.rel === "right" || x.rel === "left")[rand(2)]
+      : pool[rand(pool.length)];
+    return { a, t };
+  }
+
+  function spin() {
+    if (spinning) return;
+    spinning = true;
+    const myId = ++spinId;
+    answered = false;
+    missedThisRound = false;
+    removeInput();
+    clearMarks();
+    setAcc("");
+    pad.classList.add("off");
+    fb.textContent = "";
+    fb.className = "fb";
+    spinBtn.disabled = true;
+    revealBtn.disabled = true;
+    qKicker.textContent = "かいてんちゅう";
+    qText.textContent = "…";
+
+    const q = pickQuestion();
+    anchor = q.a; target = q.t;
+
+    paintFull();
+    showAllLabels(false);
+
+    const want = ((-anchor.i * 30) % 360 + 360) % 360;
+    const cur = ((rotDeg % 360) + 360) % 360;
+    const delta = (want - cur + 360) % 360;
+    const turns = 4 + rand(2);
+    const total = turns * 360 + delta;
+    const from = rotDeg;
+    const dur = 2700;
+    const t0 = performance.now();
+
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) { rotDeg = from + total; applyRotation(rotDeg, false); land(myId); return; }
+
+    function frame(now) {
+      if (myId !== spinId || !spinning) return; // 古い回転は破棄
+      const p = Math.min(1, (now - t0) / dur);
+      const e = 1 - Math.pow(1 - p, 3);
+      rotDeg = from + total * e;
+      applyRotation(rotDeg, false);
+      if (p < 1) requestAnimationFrame(frame);
+      else land(myId);
+    }
+    requestAnimationFrame(frame);
+
+    // タブが隠れると rAF が止まるので、時間切れなら強制的に着地させる
+    clearTimeout(landTimer);
+    landTimer = setTimeout(() => {
+      if (myId !== spinId || !spinning) return;
+      rotDeg = from + total;
+      applyRotation(rotDeg, false);
+      land(myId);
+    }, dur + 500);
+  }
+
+  function land(id) {
+    if (id !== spinId || !spinning) return; // 二重着地を防ぐ
+    clearTimeout(landTimer);
+    spinning = false;
+    rotDeg = ((rotDeg % 360) + 360) % 360;
+    applyRotation(rotDeg, true);
+
+    paintBlank();
+    showAllLabels(false);
+    const aPath = pathOf(anchor.i, anchor.ring);
+    aPath.style.fill = anchor.ring === "major" ? segs[anchor.i].baseMaj : segs[anchor.i].baseMin;
+    aPath.classList.add("anchor");
+    const aText = textOf(anchor.i, anchor.ring);
+    aText.classList.remove("hide");
+    aText.classList.add("reveal");
+
+    pathOf(target.i, target.ring).classList.add("target");
+
+    const k = KEYS[anchor.i];
+    const aName = label(anchor.i, anchor.ring) + (anchor.ring === "major" ? " 長調" : "");
+    qKicker.textContent = "もんだい";
+    qText.innerHTML = "<span class='hl'>" + aName + "</span> の<br>" + relText(target) + " は？";
+    fb.innerHTML = "起点の調号は " + sigText(k) + "。";
+    fb.className = "fb";
+
+    makeInput();
+    pad.classList.remove("off");
+    spinBtn.disabled = false;
+    spinBtn.textContent = "回しなおす";
+    revealBtn.disabled = false;
+  }
+
+  function makeInput() {
+    const [x, y] = cellPoint(target.i, target.ring);
+    const inp = document.createElement("input");
+    inp.type = "text";
+    inp.className = "fi" + (target.ring === "minor" ? " minor" : "");
+    inp.setAttribute("autocomplete", "off");
+    inp.setAttribute("autocapitalize", "characters");
+    inp.setAttribute("spellcheck", "false");
+    inp.setAttribute("aria-label", "答え");
+    inp.style.left = (x / 400 * 100) + "%";
+    inp.style.top = (y / 400 * 100) + "%";
+    inp.addEventListener("keydown", e => {
+      if (e.key === "Enter") { e.preventDefault(); judge(inp.value); }
+    });
+    inp.addEventListener("input", () => inp.classList.remove("ng"));
+    overlay.appendChild(inp);
+    input = inp;
+    // タッチ端末ではキーボードを出さない（パッドで解答する）
+    if (coarse) inp.readOnly = true; else inp.focus();
+  }
+  function removeInput() { if (input) { input.remove(); input = null; } }
+
+  function judge(raw) {
+    if (!input || answered) return;
+    const v = String(raw == null ? "" : raw).trim();
+    if (!v) return;
+    const c = canon(v);
+    if (c && acceptedFor(target.i, target.ring).has(c)) {
+      finishRound(true);
+    } else {
+      missedThisRound = true; // 出題数は1問につき1回だけ数える
+      score.streak = 0;
+      updateScore();
+      setAcc("");        // ♯/♭の選択を戻してから…
+      input.value = v;   // …選んだ答えを残して見せる
+      input.classList.remove("ng");
+      void input.offsetWidth;
+      input.classList.add("ng");
+      fb.innerHTML = "ちがいます。もう一度どうぞ。";
+      fb.className = "fb bad";
+    }
+  }
+
+  function finishRound(correct) {
+    answered = true;
+    removeInput();
+    pad.classList.add("off");
+    setAcc("");
+    const tk = KEYS[target.i];
+    const tPath = pathOf(target.i, target.ring);
+    tPath.classList.remove("target");
+    tPath.style.fill = target.ring === "major" ? segs[target.i].baseMaj : segs[target.i].baseMin;
+    const tText = textOf(target.i, target.ring);
+    tText.classList.remove("hide");
+    tText.classList.add("reveal");
+
+    score.total++;
+    const credit = correct && !missedThisRound; // 一発正解のみ加点
+    if (credit) { score.correct++; score.streak++; } else { score.streak = 0; }
+    updateScore();
+
+    const name = label(target.i, target.ring);
+    const detail = name + " は " + sigText(tk)
+      + (target.ring === "major" ? "、平行調は " + tk.minor : "、平行長調は " + tk.major) + "。";
+    if (correct) {
+      fb.innerHTML = "せいかい！ <b>" + name + "</b> — " + detail;
+      fb.className = "fb good";
+    } else {
+      fb.innerHTML = "答えは <b>" + name + "</b> — " + detail;
+      fb.className = "fb bad";
+    }
+    qKicker.textContent = "こたえ";
+    spinBtn.textContent = "次を回す";
+    revealBtn.disabled = true;
+  }
+
+  function updateScore() {
+    scCorrect.textContent = score.correct;
+    scTotal.textContent = score.total;
+    scStreak.textContent = score.streak;
+    scStreakWrap.classList.toggle("hot", score.streak >= 3);
+  }
+
+  // ---------- タップ解答パッド ----------
+  NOTE_LETTERS.forEach(L => {
+    const b = document.createElement("button");
+    b.className = "padbtn";
+    b.dataset.n = L;
+    b.textContent = L;
+    padNotes.appendChild(b);
+  });
+
+  function setAcc(a) {
+    acc = a;
+    [...padAcc.children].forEach(b => {
+      const on = b.dataset.a === a;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    if (input && !answered) input.value = a === "#" ? "♯" : a === "b" ? "♭" : "";
+  }
+
+  padAcc.addEventListener("click", e => {
+    const b = e.target.closest("button");
+    if (b) setAcc(b.dataset.a);
+  });
+  padNotes.addEventListener("click", e => {
+    const b = e.target.closest("button");
+    if (b) judge(b.dataset.n + acc);
+  });
+
+  spinBtn.addEventListener("click", spin);
+  revealBtn.addEventListener("click", () => { if (!answered && target) finishRound(false); });
+
+  const cfgLevel = document.getElementById("cfgLevel");
+  [...cfgLevel.querySelectorAll(".chip")].forEach(c => c.classList.toggle("active", c.dataset.v === level));
+  cfgLevel.addEventListener("click", e => {
+    const b = e.target.closest(".chip");
+    if (!b) return;
+    [...cfgLevel.querySelectorAll(".chip")].forEach(c => c.classList.remove("active"));
+    b.classList.add("active");
+    level = b.dataset.v;
+    localStorage.setItem("cof.level", level);
+    if (!spinning) spin();
+  });
+
+  // ---------- テーマ ----------
+  const savedTheme = localStorage.getItem("cof.theme");
+  if (savedTheme) document.documentElement.setAttribute("data-theme", savedTheme);
+  document.getElementById("themeBtn").addEventListener("click", () => {
+    const root = document.documentElement;
+    const cur = root.getAttribute("data-theme");
+    const isDark = cur ? cur === "dark" : !window.matchMedia("(prefers-color-scheme: light)").matches;
+    const next = isDark ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    localStorage.setItem("cof.theme", next);
+  });
+
+  // ---------- init ----------
+  applyRotation(0, true);
+  paintFull();
+  showAllLabels(false);
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch(() => {});
+    });
+  }
+})();
+</script>
+</body>
+</html>

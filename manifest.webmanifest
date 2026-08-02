@@ -1,0 +1,19 @@
+{
+  "name": "5度圏ルーレット",
+  "short_name": "5度圏",
+  "description": "5度圏をルーレットで回して止め、となりのマスを当てて覚えるトレーニング",
+  "lang": "ja",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#151823",
+  "theme_color": "#151823",
+  "categories": ["education", "music"],
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
