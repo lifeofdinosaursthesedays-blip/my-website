@@ -1,6 +1,6 @@
 // 5度圏ルーレット — オフライン用サービスワーカー
 // アプリを更新したら CACHE の版数を上げること（古いキャッシュは activate で消える）
-const CACHE = "cof-v1";
+const CACHE = "cof-v2";
 const ASSETS = [
   "./",
   "./index.html",
